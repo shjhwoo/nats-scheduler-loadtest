@@ -54,7 +54,7 @@ NATS handled the traffic flawlessly while maintaining under 1% CPU usage.
 | 1,000 (10,000 req)         | 0.60 ms     | 23.6 ms     | 37.9 ms     | 0.52% / 2.00%   | 31.8 MB / 36.5 MB  | 0     |
 | 2,000 (20,000 req)         | 3.83 ms     | 132.9 ms    | 255.1 ms    | 0.24% / 1.00%   | 35.9 MB / 42.7 MB  | 0     |
 
-🔥 Stress Test (20,000 messages / min):
+🔥 Stress Test (total 20,000 messages):
 
 Meaning: With a total of 20,000 reservations and continuous overwrites occurring, this is a situation where “2,000 notifications simultaneously trigger within a single minute.” (This perfectly matches scenarios like ticket sales opening or sending notifications at the top of the hour.)
 

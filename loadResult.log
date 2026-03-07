@@ -1,1 +1,4 @@
-=== NATS JSZ Monitoring Started: 2026-03-06T18:13:06+09:00 ===
+=== NATS JSZ Monitoring Started: 2026-03-07T13:08:10+09:00 ===
+=== NATS JSZ Monitoring Summary ===
+sample_count=4 fail_count=0 avg_mem=27197440.00 max_mem=31064064 avg_cpu=0.000000 max_cpu=0.000000
+=== NATS JSZ Monitoring Stopped: 2026-03-07T13:10:00+09:00 ===

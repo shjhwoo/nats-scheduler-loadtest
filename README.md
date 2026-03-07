@@ -27,7 +27,7 @@ docker run -p 4222:4222 -p 8222:8222 -ti nats:latest -js -m 8222
 cd ./loadtest
 
 # Example:
-# (total 2,000 messages, updated 10 times each, dispatching 100 messages every 1 minute)
+# (go run main go 2000 10 1 2000 : total 2,000 messages, updated 10 times each, dispatching 2000 messages every 1 minute)
 go run main.go {TOTAL_MESSAGES} {OVERWRITE_COUNT} {INTERVAL_MINUTES} {MESSAGES_PER_INTERVAL}
 ```
 
@@ -41,22 +41,24 @@ loadResult.log: Resource usage of the Scheduler JetStream.
 
 OS: Windows 11
 NATS: (docker container) single node, 3 consumer
-total Msgs: 2000
 update count per msg: 10
 msg scheduleTine interval: 60s
+(# of dispatched msg per minute == # of scheduled msg)
 
 Under severe conditions (each message updated 10 times before scheduling),
 NATS handled the traffic flawlessly while maintaining under 1% CPU usage.
 
-| Scheduled Msgs (Total I/O) | Avg Latency | P99 Latency | Max Latency | CPU (Avg / Max) | Memory (Avg / Max) | Fails |
-| -------------------------- | ----------- | ----------- | ----------- | --------------- | ------------------ | ----- |
-| 500 (5,000 req)            | 0.17 ms     | 0.76 ms     | 33.6 ms     | 0.25% / 1.00%   | 25.7 MB / 28.5 MB  | 0     |
-| 1,000 (10,000 req)         | 0.60 ms     | 23.6 ms     | 37.9 ms     | 0.52% / 2.00%   | 31.8 MB / 36.5 MB  | 0     |
-| 2,000 (20,000 req)         | 3.83 ms     | 132.9 ms    | 255.1 ms    | 0.24% / 1.00%   | 35.9 MB / 42.7 MB  | 0     |
+| Scheduled Msgs (Total I/O) | Avg Latency | P99 Latency | Max Latency | CPU (Avg / Max) | Memory (Avg / Max)  | Fails |
+| -------------------------- | ----------- | ----------- | ----------- | --------------- | ------------------- | ----- |
+| 500 (5,000 req)            | 5.03 ms     | 93.68 ms    | 126.10 ms   | 0.00% / 0.00%   | 21.06 MB / 23.25 MB | 0     |
+| 1,000 (10,000 req)         | 8.58 ms     | 155.22 ms   | 193.84 ms   | 0.00% / 0.00%   | 25.94 MB / 29.6 MB  | 0     |
+| 2,000 (20,000 req)         | 36.89 ms    | 365.9 ms    | 427.25 ms   | 0.00% / 0.00%   | 30.20 MB / 35.2 MB  | 0     |
 
 🔥 Stress Test (total 20,000 messages):
 
-Meaning: With a total of 20,000 reservations and continuous overwrites occurring, this is a situation where “2,000 notifications simultaneously trigger within a single minute.” (This perfectly matches scenarios like ticket sales opening or sending notifications at the top of the hour.)
+Meaning: With a total of 20,000 reservations and continuous overwrites occurring,
+this is a situation where “2,000 notifications simultaneously trigger within a single minute.”
+(This perfectly matches scenarios like ticket sales opening or sending notifications at the top of the hour.)
 
 ```
 go run main.go 20000 10 1 2000

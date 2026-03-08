@@ -61,7 +61,7 @@ this is a situation where “2,000 notifications simultaneously trigger within a
 (This perfectly matches scenarios like ticket sales opening or sending notifications at the top of the hour.)
 
 ```
-go run main.go 20000 10 1 2000
+go run main.go 20000 10 1 5000
 ```
 
 - result:
@@ -71,17 +71,17 @@ go run main.go 20000 10 1 2000
 ```
 📊 Benchmark Data
 Total Dispatched: 20,000 messages
-Concurrent Spike: 2,000 messages per minute
+Concurrent Spike: 5,000 messages per minute
 Failures / Data Loss: 0
 
 ⏱️ Latency Results
-Average Latency: 151.72 ms
-P95 Latency: 585.60 ms
-P99 Latency: 747.06 ms
-Max Latency: 1.06 s
+Average Latency: 9.63 s
+P95 Latency: 38.59 ms
+P99 Latency: 39.04 ms
+Max Latency: 39.36 s
 
 💻 NATS Resource Usage
-Memory Usage: Avg 52.03 MiB / Max 61.62 MiB
-CPU Usage: Avg 7.04% / Max 40.00%
+Memory Usage: Avg 47.71 MiB / Max 56.14 MiB
+CPU Usage: Avg 8.86% / Max 34.00%
 
 ```

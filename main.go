@@ -65,8 +65,8 @@ var ScheduledMsgGroupingCount = 100
 
 const natsURL = "nats://localhost:4222"
 const StreamName = "schedulerStream"
-const pendingSubjectPrefix = "scheduler.pending"
-const onProcessSubjectPrefix = "scheduler.process"
+const schedulerPending = "scheduler.pending"
+const schedulerPublished = "scheduler.published"
 const monitorURL = "http://localhost:8222/varz?js=true"
 const monitorLogFile = "loadResult.log"
 const monitorInterval = 30 * time.Second
@@ -120,10 +120,19 @@ func main() {
 	latencyAggregatorWg.Add(1)
 	go latencyAggregator()
 
+	if err := purgeSchedulerStream(); err != nil {
+		log.Fatalf("failed to purge scheduler stream: %v", err)
+	}
+
 	successCount := publishScheduledMessageToSchedulerStream()
 	log.Printf("--- publish complete: %d succeeded, %d failed ---", successCount, NumScheduledMessages-successCount)
 
 	wg.Add(successCount)
+
+	if err := createSchedulerConsumer(); err != nil {
+		log.Fatalf("failed to create scheduler consumer: %v", err)
+	}
+
 	log.Println("--- all scheduled messages set to pending state and ready to consume ---")
 
 	wg.Wait()
@@ -249,9 +258,19 @@ func SetupNatsClient() error {
 		return err
 	}
 
-	if err := createSchedulerConsumer(); err != nil {
+	return nil
+}
+
+func purgeSchedulerStream() error {
+	if natsClient.Stream == nil {
+		return fmt.Errorf("stream is not initialized")
+	}
+
+	if err := natsClient.Stream.Purge(context.Background()); err != nil {
 		return err
 	}
+
+	log.Println("--- scheduler stream purged before test run ---")
 
 	return nil
 }
@@ -261,8 +280,8 @@ func createSchedulerStream() error {
 		Name:    StreamName,
 		Storage: jetstream.FileStorage,
 		Subjects: []string{
-			fmt.Sprintf("%s.*", pendingSubjectPrefix),
-			fmt.Sprintf("%s.*", onProcessSubjectPrefix),
+			fmt.Sprintf("%s.*", schedulerPending),
+			fmt.Sprintf("%s.*", schedulerPublished),
 		},
 		Retention:         jetstream.WorkQueuePolicy,
 		Discard:           jetstream.DiscardOld,
@@ -275,9 +294,9 @@ func createSchedulerStream() error {
 		return err
 	}
 
-	log.Println("스트림생성: ",
-		fmt.Sprintf("%s.*", pendingSubjectPrefix),
-		fmt.Sprintf("%s.*", onProcessSubjectPrefix))
+	log.Println("Creaetd stream: ",
+		fmt.Sprintf("%s.*", schedulerPending),
+		fmt.Sprintf("%s.*", schedulerPublished))
 
 	natsClient.Stream = stream
 
@@ -294,7 +313,7 @@ func createSchedulerStream() error {
 func createSchedulerConsumer() error {
 	consumer, err := natsClient.Stream.CreateConsumer(context.Background(), jetstream.ConsumerConfig{
 		Durable:        "scheduledEventSinkConsumer",
-		FilterSubjects: []string{fmt.Sprintf("%s.*", onProcessSubjectPrefix)},
+		FilterSubjects: []string{fmt.Sprintf("%s.*", schedulerPublished)},
 		AckPolicy:      jetstream.AckExplicitPolicy,
 	})
 	if err != nil {
@@ -318,14 +337,12 @@ func createSchedulerConsumer() error {
 
 			latency := time.Since(content.ScheduledAt)
 
-			// [FIX 3] 음수 latency는 0으로 처리 (이미 예약 시각 전에 도착 = 오차 없음으로 간주)
 			if latency < 0 {
 				latency = 0
 			}
 
 			latencyChan <- latency
 
-			// [FIX 4] P99 계산용 slice에 추가
 			latenciesMu.Lock()
 			latencies = append(latencies, latency)
 			latenciesMu.Unlock()
@@ -387,7 +404,6 @@ type MessageContent struct {
 	ScheduledAt time.Time
 }
 
-// [FIX 2] 반환값을 성공한 publish 건수로 변경
 func publishScheduledMessageToSchedulerStream() int {
 	successCount := 0
 
@@ -426,14 +442,14 @@ func publishScheduledMessageToSchedulerStream() int {
 				Header: nats.Header{
 					"Nats-Schedule":        []string{fmt.Sprintf("@at %s", scheduledAt.Format(time.RFC3339))},
 					"Nats-Schedule-TTL":    []string{"180s"},
-					"Nats-Schedule-Target": []string{fmt.Sprintf("%s.%s", onProcessSubjectPrefix, scheduleId)},
+					"Nats-Schedule-Target": []string{fmt.Sprintf("%s.%s", schedulerPublished, scheduleId)},
 				},
-				Subject: fmt.Sprintf("%s.%s", pendingSubjectPrefix, scheduleId),
+				Subject: fmt.Sprintf("%s.%s", schedulerPending, scheduleId),
 				Data:    msgBytes,
 			})
 			if err != nil {
 				log.Printf("failed to publish msg to scheduler stream: %v, remainingTime: %d", err, remainingTime)
-				// [FIX 2] 최종 수정본(mc == ModifyCountPerMessage)이 실패한 경우만 카운트 감소
+
 				if mc == ModifyCountPerMessage {
 					publishFailMu.Lock()
 					publishFailCount++
@@ -444,7 +460,7 @@ func publishScheduledMessageToSchedulerStream() int {
 
 			if mc == ModifyCountPerMessage {
 				successCount++
-				log.Println("targetSubject: ", fmt.Sprintf("%s.%s", onProcessSubjectPrefix, scheduleId))
+				log.Println("targetSubject: ", fmt.Sprintf("%s.%s", schedulerPublished, scheduleId))
 				log.Printf("final version of scheduled msg(%s) published: %+v, scheduledAt: %s (remaining %ds)", scheduleId, pubAck, scheduledAt.Format(time.RFC3339), remainingTime)
 			}
 		}

@@ -27,7 +27,7 @@ docker run -p 4222:4222 -p 8222:8222 -ti nats:latest -js -m 8222
 cd ./loadtest
 
 # Example:
-# (go run main go 2000 10 1 2000 : total 2,000 messages, updated 10 times each, dispatching 2000 messages every 1 minute)
+# (go run main.go 2000 10 1 2000 : total 2,000 messages, updated 10 times each, dispatching 2000 messages every 1 minute)
 go run main.go {TOTAL_MESSAGES} {OVERWRITE_COUNT} {INTERVAL_MINUTES} {MESSAGES_PER_INTERVAL}
 ```
 

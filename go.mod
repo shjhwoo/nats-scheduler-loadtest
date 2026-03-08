@@ -1,6 +1,6 @@
 module loadTest
 
-go 1.24.0
+go 1.26.1
 
 require github.com/nats-io/nats.go v1.48.0
 

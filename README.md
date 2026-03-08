@@ -76,8 +76,8 @@ Failures / Data Loss: 0
 
 ⏱️ Latency Results
 Average Latency: 9.63 s
-P95 Latency: 38.59 ms
-P99 Latency: 39.04 ms
+P95 Latency: 38.59 s
+P99 Latency: 39.04 s
 Max Latency: 39.36 s
 
 💻 NATS Resource Usage
